@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Lexer {
+public class PascalLexer {
     public static HashMap<String, TokenType> keywords = new HashMap<>();
     public static Pattern LITERAL_INT_PATTERN = Pattern.compile("^-?[$%&]?\\d+");
     public static Pattern LITERAL_REAL_PATTERN = Pattern.compile("^-?\\d+(((\\.\\d+)?e-?\\d+)|(\\.\\d+))");
