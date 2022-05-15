@@ -8,13 +8,13 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class PascalLexer {
+public class PascalTokenizer {
     public static HashMap<String, TokenType> keywords = new HashMap<>();
     public static Pattern LITERAL_INT_PATTERN = Pattern.compile("^-?[$%&]?\\d+");
     public static Pattern LITERAL_REAL_PATTERN = Pattern.compile("^-?\\d+(((\\.\\d+)?e-?\\d+)|(\\.\\d+))");
     public static Pattern IDENTIFIER_PATTERN = Pattern.compile("^\\D[^()\\[\\].:;,=+\\-*/<>\\s]*");
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, PascalTokenizerException {
         if(args.length == 0){
             System.out.println("Wymagany jest argument: plik do analizy");
             System.exit(0);
@@ -57,8 +57,10 @@ public class PascalLexer {
         analyze(txt.toString()).forEach(System.out::println);
     }
 
-    public static List<Token> analyze(String code){
+    public static List<Token> analyze(String code) throws PascalTokenizerException{
         ArrayList<Token> tokens = new ArrayList<>();
+        //TODO make it accept file as an argument instead of a string with the code
+        //TODO change position to 'row:in-row-position' instead of absolute position
 
         char c, cc;
         int cst, codelen = code.length()-1;
@@ -78,8 +80,7 @@ public class PascalLexer {
                     while((cc = code.charAt(++i)) != '}'){
                         temp.append(cc);
                         if(i == codelen){
-                            System.err.println("Nie zamkniety komentarz! od pozycji" + cst);
-                            break;
+                            throw new PascalTokenizerException("Open comment reaching the end of the file, starting at position: " + cst);
                         }
                     }
                     tokens.add(new Token(TokenType.COMMENT, temp.toString(), cst));
@@ -90,8 +91,7 @@ public class PascalLexer {
                     while((cc = code.charAt(++i)) != '\''){
                         temp.append(cc);
                         if(i == codelen){
-                            System.err.println("Nie zamkniety ciąg znaków! od pozycji" + cst);
-                            break;
+                            throw new PascalTokenizerException("Open string literal reaching the end of the file, starting at position: " + cst);
                         }
                     }
                     tokens.add(new Token(TokenType.LITERAL_STRING, temp.toString(), cst));
@@ -99,16 +99,24 @@ public class PascalLexer {
                 case ';':
                     tokens.add(new Token(TokenType.EXPRESSION_END, ";", i));
                     break;
+                case '(':
+                    tokens.add(new Token(TokenType.BR_OPEN, "(", i));
+                    break;
+                case ')':
+                    tokens.add(new Token(TokenType.BR_CLOSED, ")", i));
+                    break;
+                case '[':
+                    tokens.add(new Token(TokenType.BR_SQ_OPEN, "[", i));
+                    break;
+                case ']':
+                    tokens.add(new Token(TokenType.BR_SQ_CLOSED, "]", i));
+                    break;
                 case '.':
                     if(i != codelen && code.charAt(i+1) == '.') {
                         tokens.add(new Token(TokenType.RANGE, "..", i++));
                         break;
                     }
                 case ',':
-                case '(':
-                case ')':
-                case '[':
-                case ']':
                     tokens.add(new Token(TokenType.DELIMITER, String.valueOf(c), i));
                     break;
                 case '+':
@@ -211,8 +219,7 @@ public class PascalLexer {
                         }else if ((matcher = IDENTIFIER_PATTERN.matcher(substr)).find()) {
                             tokens.add(new Token(TokenType.IDENTIFIER, matcher.group(), i));
                         } else {
-                            System.err.println("Nie poprawne wyrazenie od pozycji " + i);
-                            return tokens;
+                           throw new PascalTokenizerException("Invalid expression starting at position: " + i);
                         }
 
                         i += matcher.end()-1;
@@ -274,6 +281,10 @@ public class PascalLexer {
         VARTYPE_INT,
         VARTYPE_REAL,
         VARTYPE_BOOL,
+        BR_OPEN,
+        BR_CLOSED,
+        BR_SQ_OPEN,
+        BR_SQ_CLOSED,
         EXPRESSION_END,
         RANGE,
         IDENTIFIER(true),

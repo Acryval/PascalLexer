@@ -1,2 +1,2 @@
-# PascalLexer
-A simple java class to analyze code written in Pascal
+# PascalParser
+A simple java classes to tokenize, analyze and parse code written in Pascal
